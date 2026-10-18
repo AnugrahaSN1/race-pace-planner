@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Race Pace Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Nunito:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: race-bib header, input card beside a results panel, then a full-width wrist pace band */
+:root {
+  --bg: #F2F4F3;
+  --surface: #FFFFFF;
+  --ink: #15202B;
+  --muted: #5B6873;
+  --line: #D8DEE2;
+  --accent: #1F49C7;
+  --accent-soft: #E3EAFB;
+  --good: #1E7A4C; --good-soft: #DFF2E7;
+  --warn: #9A6400; --warn-soft: #FBEFD5;
+  --bad: #B3261E;  --bad-soft: #FBE1DE;
+  --band: #15202B; --band-ink: #F2F4F3; --band-alt: #24313D;
+  --f-display: "Racing Sans One", "Arial Black", Impact, sans-serif;
+  --f-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0F151B; --surface: #172029; --ink: #E8EDF1; --muted: #9AA7B2; --line: #2A3743;
+  --accent: #7C9BFF; --accent-soft: #1C2A4D;
+  --good: #6CD39C; --good-soft: #143525; --warn: #F0BE5A; --warn-soft: #3A2C10; --bad: #FF8A80; --bad-soft: #3D1A17;
+  --band: #E8EDF1; --band-ink: #15202B; --band-alt: #D3DBE1; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0F151B; --surface: #172029; --ink: #E8EDF1; --muted: #9AA7B2; --line: #2A3743;
+  --accent: #7C9BFF; --accent-soft: #1C2A4D;
+  --good: #6CD39C; --good-soft: #143525; --warn: #F0BE5A; --warn-soft: #3A2C10; --bad: #FF8A80; --bad-soft: #3D1A17;
+  --band: #E8EDF1; --band-ink: #15202B; --band-alt: #D3DBE1; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 32px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px; }
+
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.bib { display: inline-flex; align-items: baseline; gap: 12px; }
+.bib-no { font-family: var(--f-display); font-weight: 400; font-size: 15px; letter-spacing: .08em;
+  color: var(--accent); border: 2px solid var(--accent); padding: 2px 8px; border-radius: 4px; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 7vw, 64px); line-height: .95;
+  margin: 0; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 46ch; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 24px; min-width: 0; }
+.eyebrow { font-family: var(--f-display); font-weight: 400; font-size: 14px; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--muted); margin: 0 0 12px; }
+
+form { display: grid; gap: 20px; }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; }
+legend { padding: 0; margin-bottom: 4px; font-family: var(--f-display); font-weight: 400; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label { display: grid; gap: 4px; font-size: 14px; font-weight: 600; color: var(--muted); min-width: 0; }
+input, select { font: 500 17px/1.2 var(--f-mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; width: 100%; min-width: 0; }
+select { font-family: var(--f-body); font-weight: 600; font-size: 16px; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+input[aria-invalid="true"] { border-color: var(--bad); background: var(--bad-soft); }
+.hint { font-size: 13px; color: var(--muted); font-weight: 400; }
+.err { color: var(--bad); font-size: 14px; margin: 0; }
+hr { border: 0; border-top: 1px dashed var(--line); margin: 0; }
+
+.results { display: grid; gap: 20px; }
+.verdict { border-radius: 8px; padding: 16px 18px; display: grid; gap: 4px; }
+.verdict[data-v="realistic"] { background: var(--good-soft); color: var(--good); }
+.verdict[data-v="ambitious"] { background: var(--warn-soft); color: var(--warn); }
+.verdict[data-v="unlikely"]  { background: var(--bad-soft);  color: var(--bad); }
+.verdict strong { font-family: var(--f-display); font-weight: 400; font-size: 30px; text-transform: uppercase; letter-spacing: .03em; line-height: 1; }
+.verdict p { margin: 0; color: var(--ink); }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 480px) { .stats { grid-template-columns: minmax(0, 1fr); } }
+.stat { border-top: 3px solid var(--ink); padding-top: 8px; display: grid; gap: 2px; }
+.stat span { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.stat b { font-family: var(--f-mono); font-weight: 700; font-size: clamp(22px, 3.2vw, 28px); font-variant-numeric: tabular-nums; }
+.stat small { font-size: 13px; color: var(--muted); }
+
+.tip { margin: 0; padding: 12px 14px; background: var(--accent-soft); border-radius: 8px; font-size: 15px; }
+.tip b { color: var(--accent); }
+
+.band-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.band-head h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 30px; text-transform: uppercase; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--bg); }
+.seg button { font: 800 14px var(--f-body); border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.band-wrap { overflow-x: auto; border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 420px; background: var(--band); color: var(--band-ink);
+  font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 15px; }
+th { font-family: var(--f-display); font-weight: 400; text-transform: uppercase; letter-spacing: .08em; font-size: 13px;
+  text-align: right; padding: 10px 14px; opacity: .75; }
+th:first-child, td:first-child { text-align: left; }
+td { padding: 7px 14px; text-align: right; }
+tbody tr:nth-child(even) { background: var(--band-alt); }
+tr.half td { box-shadow: inset 0 2px 0 var(--accent); }
+tr.finish td { font-weight: 700; }
+.tag { font-family: var(--f-display); font-weight: 400; font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  background: var(--accent); color: #fff; padding: 1px 6px; border-radius: 3px; margin-left: 8px; vertical-align: 1px; }
+
+footer { color: var(--muted); font-size: 14px; display: grid; gap: 6px; max-width: 75ch; }
+footer p { margin: 0; }
+@media (prefers-reduced-motion: no-preference) { .verdict { transition: background-color .25s, color .25s; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="bib"><span class="bib-no">KM / PACE</span></div>
+      <h1>Race Pace Planner</h1>
+    </div>
+    <p class="lede">Check whether your race goal is realistic, then get the kilometre-by-kilometre splits to hit it.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="in-h">
+      <p class="eyebrow" id="in-h">Your numbers</p>
+      <form id="f" novalidate>
+        <fieldset>
+          <legend>Recent race</legend>
+          <div class="row">
+            <label for="rd">Distance
+              <select id="rd"></select>
+            </label>
+            <label for="rt">Finish time
+              <input id="rt" value="25:00" inputmode="text" autocomplete="off" spellcheck="false">
+            </label>
+          </div>
+          <label for="rdc" id="rdc-wrap" hidden>Custom distance (km)
+            <input id="rdc" type="number" min="1" max="200" step="0.1" value="15">
+          </label>
+        </fieldset>
+        <hr>
+        <fieldset>
+          <legend>Goal race</legend>
+          <div class="row">
+            <label for="td">Distance
+              <select id="td"></select>
+            </label>
+            <label for="tt">Goal time
+              <input id="tt" value="1:52:00" inputmode="text" autocomplete="off" spellcheck="false">
+            </label>
+          </div>
+          <label for="tdc" id="tdc-wrap" hidden>Custom distance (km)
+            <input id="tdc" type="number" min="1" max="200" step="0.1" value="15">
+          </label>
+        </fieldset>
+        <span class="hint">Type times as mm:ss or h:mm:ss, for example 48:30 or 3:45:00.</span>
+        <p class="err" id="err" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section class="card results" aria-live="polite" aria-labelledby="out-h">
+      <p class="eyebrow" id="out-h" style="margin:0">Your verdict</p>
+      <div class="verdict" id="verdict" data-v="realistic">
+        <strong id="v-word">Realistic</strong>
+        <p id="v-text"></p>
+      </div>
+      <div class="stats">
+        <div class="stat"><span>Predicted time</span><b id="s-pred">–</b><small>from your recent race</small></div>
+        <div class="stat"><span>Goal pace</span><b id="s-gpace">–</b><small>per km, average</small></div>
+        <div class="stat"><span>Predicted pace</span><b id="s-ppace">–</b><small>per km, average</small></div>
+      </div>
+      <p class="tip" id="tip"></p>
+    </section>
+  </div>
+
+  <section class="card" aria-labelledby="band-h">
+    <div class="band-head">
+      <h2 id="band-h">Your pace band</h2>
+      <div class="seg" role="group" aria-label="Pacing strategy">
+        <button type="button" id="b-neg" aria-pressed="true">Negative split</button>
+        <button type="button" id="b-even" aria-pressed="false">Even pace</button>
+      </div>
+    </div>
+    <p class="hint" id="band-note" style="margin:0 0 12px"></p>
+    <div class="band-wrap">
+      <table>
+        <thead><tr><th scope="col">Km</th><th scope="col">Pace this km</th><th scope="col">Time at km</th><th scope="col">Even-pace time</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>How it works.</b> Predictions use Riegel's formula, T₂ = T₁ × (D₂ / D₁)<sup>1.06</sup>, the standard way to project a race time to another distance. A goal at or slower than the prediction is realistic, up to 3% faster is ambitious, and more than 3% faster is unlikely.</p>
+    <p><b>Limits.</b> It assumes a flat course, similar weather and training suited to the distance. Projections from a 5K to a marathon are the least reliable, because endurance matters more over longer distances.</p>
+  </footer>
+</div>
+
+<script>
+const DIST = [["5K",5],["10K",10],["Half marathon",21.0975],["Marathon",42.195],["Other distance","custom"]];
+const $ = id => document.getElementById(id);
+let strategy = "neg";
+
+function fillSelect(sel, def){
+  DIST.forEach(([n,v]) => { const o = document.createElement("option"); o.value = v; o.textContent = n; sel.append(o); });
+  sel.value = def;
+}
+fillSelect($("rd"), "5"); fillSelect($("td"), "21.0975");
+
+function parseTime(s){
+  const p = s.trim().split(":");
+  if (p.length < 2 || p.length > 3 || p.some(x => !/^\d+$/.test(x))) return null;
+  const n = p.map(Number);
+  const [h,m,sec] = n.length === 3 ? n : [0, n[0], n[1]];
+  if (sec >= 60 || (n.length === 3 && m >= 60)) return null;
+  const t = h*3600 + m*60 + sec;
+  return t > 0 ? t : null;
+}
+function fmt(t){
+  t = Math.round(t);
+  const h = Math.floor(t/3600), m = Math.floor(t%3600/60), s = t%60;
+  return h ? `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${m}:${String(s).padStart(2,"0")}`;
+}
+function dist(selId, customId, wrapId){
+  const v = $(selId).value;
+  $(wrapId).hidden = v !== "custom";
+  if (v !== "custom") return Number(v);
+  const c = Number($(customId).value);
+  return c > 0 ? c : null;
+}
+function label(selId, d){
+  const o = $(selId).selectedOptions[0];
+  return $(selId).value === "custom" ? `${d} km` : o.textContent;
+}
+
+function update(){
+  const rd = dist("rd","rdc","rdc-wrap"), td = dist("td","tdc","tdc-wrap");
+  const rt = parseTime($("rt").value), tt = parseTime($("tt").value);
+  $("rt").setAttribute("aria-invalid", rt ? "false" : "true");
+  $("tt").setAttribute("aria-invalid", tt ? "false" : "true");
+  if (!rd || !td || !rt || !tt){
+    $("err").textContent = !rt || !tt ? "Check the times: use mm:ss or h:mm:ss, like 25:00 or 1:52:00." : "Enter a custom distance greater than 0 km.";
+    $("err").hidden = false; return;
+  }
+  $("err").hidden = true;
+
+  const pred = rt * Math.pow(td/rd, 1.06);
+  const gp = tt/td, pp = pred/td;
+  const diff = (tt - pred)/pred;
+  $("s-pred").textContent = fmt(pred);
+  $("s-gpace").textContent = fmt(gp);
+  $("s-ppace").textContent = fmt(pp);
+
+  const pct = Math.abs(diff*100).toFixed(1);
+  const need = tt / Math.pow(td/rd, 1.06);
+  const rLabel = label("rd", rd), tLabel = label("td", td);
+  let v, txt;
+  if (diff >= 0){
+    v = "realistic";
+    txt = diff < 0.005 ? `Your goal matches your predicted ${tLabel.toLowerCase()} time.` :
+      `Your goal is ${pct}% slower than your predicted time, so you have some margin.`;
+  } else if (diff >= -0.03){
+    v = "ambitious";
+    txt = `Your goal is ${pct}% faster than predicted. It is within reach with focused training and well-judged pacing.`;
+  } else {
+    v = "unlikely";
+    txt = `Your goal is ${pct}% faster than predicted. To make it realistic, you would first need a ${rLabel} of about ${fmt(need)}.`;
+  }
+  $("verdict").dataset.v = v;
+  $("v-word").textContent = v[0].toUpperCase() + v.slice(1);
+  $("v-text").textContent = txt;
+
+  $("tip").innerHTML = v === "unlikely"
+    ? `<b>Pacing tip:</b> Starting at goal pace when it is beyond your current fitness usually means a hard slowdown in the second half. Consider running the plan for ${fmt(pred)} instead.`
+    : `<b>Pacing tip:</b> Most runners lose time by starting too fast. Hold back to ${fmt(gp*1.01)} /km for the first half, then speed up to ${fmt(gp*0.99)} /km.`;
+
+  renderBand(td, gp);
+}
+
+function renderBand(td, gp){
+  const half = td/2, rows = [];
+  const cps = []; for (let k = 1; k < td - 1e-9; k++) cps.push(k); cps.push(td);
+  const slow = gp*1.01, fast = gp*0.99;
+  let halfMarked = false;
+  for (const k of cps){
+    const even = k*gp;
+    let t, pace;
+    if (strategy === "even"){ t = even; pace = gp; }
+    else {
+      t = k <= half ? k*slow : half*slow + (k-half)*fast;
+      pace = k <= half ? slow : fast;
+      if (k - 1 < half && k > half) pace = ((half-(k-1))*slow + (k-half)*fast);
+    }
+    const isFinish = k === td;
+    const isHalf = !halfMarked && k >= half && !isFinish;
+    if (isHalf) halfMarked = true;
+    const kmLabel = isFinish ? (Number.isInteger(td) ? td : td.toFixed(2)) : k;
+    rows.push(`<tr class="${isHalf ? "half" : ""}${isFinish ? " finish" : ""}"><td>${kmLabel}${isFinish ? '<span class="tag">Finish</span>' : isHalf ? '<span class="tag">Halfway</span>' : ""}</td><td>${fmt(pace)}</td><td>${fmt(t)}</td><td>${fmt(even)}</td></tr>`);
+  }
+  $("rows").innerHTML = rows.join("");
+  $("band-note").textContent = strategy === "neg"
+    ? `First half 1% slower than goal pace, second half 1% faster. You still finish in exactly your goal time.`
+    : `The same pace for every kilometre.`;
+}
+
+function setStrategy(s){
+  strategy = s;
+  $("b-neg").setAttribute("aria-pressed", s === "neg");
+  $("b-even").setAttribute("aria-pressed", s === "even");
+  update();
+}
+$("b-neg").addEventListener("click", () => setStrategy("neg"));
+$("b-even").addEventListener("click", () => setStrategy("even"));
+$("f").addEventListener("input", update);
+$("f").addEventListener("change", update);
+$("f").addEventListener("submit", e => e.preventDefault());
+update();
+</script>
+</body>
+</html>
